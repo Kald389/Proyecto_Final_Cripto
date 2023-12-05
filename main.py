@@ -1,14 +1,14 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import mplfinance as mpf
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import numpy as np
 from pykrakenapi import KrakenAPI
 import krakenex
-import numpy as np
 from datetime import datetime, timedelta
 import pandas as pd
 
 class CryptoChart:
-    def _init_(self):
+    def __init__(self):
         self.api_krakenex = krakenex.API()
         self.api = KrakenAPI(self.api_krakenex)
 
@@ -18,9 +18,9 @@ class CryptoChart:
         elif selected_timeframe == "1W":
             return 365 * 2
         elif selected_timeframe == "4H":
-            return 30  # Cambiado a 30 días para incluir más velas de 4H
+            return 30
         elif selected_timeframe == "1H":
-            return 10   # Cambiado a 7 días para incluir más velas de 1H
+            return 10
         else:
             return 90
 
@@ -58,61 +58,51 @@ class CryptoChart:
         elif selected_timeframe in ["4H"]:
             return 0.1
         elif selected_timeframe in ["1H"]:
-            return 0.03  # Ajustado el ancho de las barras para 4H y 1H
+            return 0.03
         else:
             return 0.6
 
     def plot_candlestick_chart(self, ohlc_data, selected_pair, selected_timeframe):
         ohlc_data = self.calculate_stochastic(ohlc_data)
 
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]}, sharex=True, figsize=(10, 8))
+        # Gráfico de precio
+        candlestick = go.Candlestick(x=ohlc_data.index,
+                                     open=ohlc_data['open'],
+                                     high=ohlc_data['high'],
+                                     low=ohlc_data['low'],
+                                     close=ohlc_data['close'],
+                                     name='Candlestick')
 
-        if selected_timeframe in ["4H", "1H"]:
-            ohlc_data = ohlc_data.iloc[-60:]  # Aumentado el número de velas para 4H y 1H
+        # Gráfico de volumen
+        volume = go.Bar(x=ohlc_data.index, y=ohlc_data['volume'],
+                        marker_color=np.where(ohlc_data['close'] > ohlc_data['open'], 'green', 'red'),
+                        name='Volume')
 
-        mpf.plot(ohlc_data, type='candle', style='yahoo', ax=ax1, show_nontrading=True, ylabel='Precio (USDT)')
+        # Gráfico de estocástico
+        stochastics = go.Scatter(x=ohlc_data.index, y=ohlc_data['%K'], mode='lines', name='%K', line=dict(color='blue'))
+        stochastics_d = go.Scatter(x=ohlc_data.index, y=ohlc_data['%D'], mode='lines', name='%D', line=dict(color='orange'))
 
-        ax1.yaxis.tick_left()
-        ax1.xaxis.set_major_locator(plt.AutoLocator())
-        ax1.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: pd.to_datetime(x).strftime('%Y-%m-%d')))
-        ax1.set_xlim(left=ohlc_data.index[0], right=ohlc_data.index[-1])
+        # Configuración del gráfico principal (precio)
+        fig = make_subplots(rows=3, cols=1, shared_xaxes=True, subplot_titles=['Precio (USDT)', 'Volumen (USDT)', 'Estocástico'])
+        fig.add_trace(candlestick, row=1, col=1)
+        fig.add_trace(volume, row=2, col=1)
+        fig.add_trace(stochastics, row=3, col=1)
+        fig.add_trace(stochastics_d, row=3, col=1)
 
         width = self.adjust_bar_width(selected_timeframe)
 
-        ax2.bar(ohlc_data.index, ohlc_data['volume'], color=np.where(ohlc_data['close'] > ohlc_data['open'], 'g', 'r'), width=width)
-        ax2.set_ylabel('Volumen (USDT)')
+        # Configuración del eje y
+        fig.update_yaxes(title_text='Precio (USDT)', row=1, col=1)
+        fig.update_yaxes(title_text='Volumen (USDT)', row=2, col=1)
+        fig.update_yaxes(title_text='Estocástico', row=3, col=1)
 
-        ax2.yaxis.tick_left()
-        ax2.xaxis.set_major_locator(plt.AutoLocator())
+        # Configuración del eje x
+        fig.update_xaxes(type='category', categoryorder='category ascending', row=3, col=1)
 
-        ax3.plot(ohlc_data.index, ohlc_data['%K'], label='Standard Stochastic', color='blue')
-        ax3.plot(ohlc_data.index, ohlc_data['%D'], label='MA Stochastic', color='orange')
-        ax3.axhline(80, color='red', linestyle='--', label='Overbought (80)')
-        ax3.axhline(20, color='green', linestyle='--', label='Oversold (20)')
+        # Ajuste de diseño
+        fig.update_layout(showlegend=False, height=800, title_text=f'Gráfico {selected_pair} - Temporalidad {selected_timeframe}', xaxis_rangeslider_visible=False)
 
-        ax3.set_xlabel('Fecha')
-        ax3.set_ylabel('Estocástico')
-        ax3.legend(loc='upper left')
-
-        for line in ax1.lines + ax3.lines:
-            line.set_picker(True)
-            line.set_pickradius(5)
-            line.set_label(line.get_label())
-
-        def onpick(event):
-            if event.artist in ax1.lines + ax3.lines:
-                date = event.artist.get_xdata()[event.ind][0]
-                label = ohlc_data.index[ohlc_data.index.get_loc(date)].strftime('%Y-%m-%d')
-                st.write(f"Fecha: {label}, Precio de cierre: {ohlc_data.loc[label, 'close']:.2f}")
-
-        fig.canvas.mpl_connect('pick_event', onpick)
-
-        # Eliminar fechas del gráfico del estocástico
-        ax3.set_xticks([])
-
-        fig.suptitle(f'Gráfico {selected_pair} - Temporalidad {selected_timeframe}', fontsize=16)
-
-        st.pyplot(fig)
+        return fig
 
 def main():
     crypto_chart = CryptoChart()
@@ -123,7 +113,10 @@ def main():
     ohlc_data = crypto_chart.get_ohlc_data(selected_pair, selected_timeframe)
 
     if ohlc_data is not None:
-        crypto_chart.plot_candlestick_chart(ohlc_data, selected_pair, selected_timeframe)
+        fig = crypto_chart.plot_candlestick_chart(ohlc_data, selected_pair, selected_timeframe)
 
-if _name_ == "_main_":
+        # Mostrar el gráfico en Streamlit
+        st.plotly_chart(fig, use_container_width=True)
+
+if __name__ == "__main__":
     main()
