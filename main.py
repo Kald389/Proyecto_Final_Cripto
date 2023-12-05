@@ -1,6 +1,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import mplfinance as mpf
+import numpy as np
 from pykrakenapi import KrakenAPI
 import krakenex
 
@@ -31,7 +32,21 @@ class CryptoChart:
             st.error(f"Error al obtener datos para el par {pair}: {e}")
             return None
 
+    def calculate_stochastic(self, ohlc_data, window=14):
+        # Calcular %K
+        high_max = np.maximum.accumulate(ohlc_data['high'].values)
+        low_min = np.minimum.accumulate(ohlc_data['low'].values)
+        ohlc_data['%K'] = 100 * ((ohlc_data['close'].values - low_min) / (high_max - low_min))
+
+        # Calcular %D (media móvil de %K)
+        ohlc_data['%D'] = ohlc_data['%K'].rolling(window=window).mean()
+
+        return ohlc_data
+
     def plot_candlestick_chart(self, ohlc_data, selected_pair, selected_timeframe):
+        # Calcular el estocástico
+        ohlc_data = self.calculate_stochastic(ohlc_data)
+
         # Crear una figura
         fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, sharex=True, figsize=(10, 8))
 
@@ -45,12 +60,21 @@ class CryptoChart:
         ax2.fill_between(ohlc_data.index, ohlc_data['volume'], color='gray', alpha=0.5)
         ax2.set_ylabel('Volumen')
 
+        # Graficar estocástico
+        ax2.plot(ohlc_data.index, ohlc_data['%K'], label='%K', color='blue')
+        ax2.plot(ohlc_data.index, ohlc_data['%D'], label='%D', color='orange')
+        ax2.axhline(80, color='red', linestyle='--', label='Overbought (80)')
+        ax2.axhline(20, color='green', linestyle='--', label='Oversold (20)')
+
         # Ajustes de diseño
         fig.suptitle(f'Gráfico {selected_pair} - Temporalidad {selected_timeframe}', fontsize=16)
         ax1.yaxis.tick_left()  # Mover ticks del eje y a la izquierda
         ax2.yaxis.tick_left()  # Mover ticks del eje y a la izquierda
         ax1.xaxis.set_major_locator(plt.MaxNLocator(6))  # Mostrar hasta 6 fechas en el eje x
         ax2.xaxis.set_major_locator(plt.MaxNLocator(6))  # Mostrar hasta 6 fechas en el eje x
+
+        # Ajuste de escala en el eje y del segundo subgráfico
+        ax2.set_ylim(0, 100)
 
         # Mostrar la gráfica en Streamlit
         st.pyplot(fig)
