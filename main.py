@@ -5,7 +5,6 @@ import numpy as np
 from pykrakenapi import KrakenAPI
 import krakenex
 from datetime import datetime, timedelta
-import pandas as pd
 
 class DataFetcher:
     def __init__(self):
@@ -18,9 +17,9 @@ class DataFetcher:
         elif selected_timeframe == "1W":
             return 365 * 2
         elif selected_timeframe == "4H":
-            return 30
+            return 20
         elif selected_timeframe == "1H":
-            return 10
+            return 7
         else:
             return 90
 
@@ -136,3 +135,6 @@ def main():
         if fig is not None:
             # Mostrar el gráfico en Streamlit
             st.plotly_chart(fig, use_container_width=True)
+
+if __name__ == "__main__":
+    main()
