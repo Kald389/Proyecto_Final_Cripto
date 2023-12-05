@@ -1,7 +1,6 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import mplfinance as mpf
-import numpy as np
 from pykrakenapi import KrakenAPI
 import krakenex
 import numpy as np
@@ -9,7 +8,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 class CryptoChart:
-    def __init__(self):
+    def _init_(self):
         self.api_krakenex = krakenex.API()
         self.api = KrakenAPI(self.api_krakenex)
 
@@ -47,24 +46,6 @@ class CryptoChart:
             return None
 
     def calculate_stochastic(self, ohlc_data, window=14):
-<<<<<<< HEAD
-        # Calcular %K
-        high_max = np.maximum.accumulate(ohlc_data['high'].values)
-        low_min = np.minimum.accumulate(ohlc_data['low'].values)
-        ohlc_data['%K'] = 100 * ((ohlc_data['close'].values - low_min) / (high_max - low_min))
-
-        # Calcular %D (media móvil de %K)
-        ohlc_data['%D'] = ohlc_data['%K'].rolling(window=window).mean()
-
-        return ohlc_data
-
-    def plot_candlestick_chart(self, ohlc_data, selected_pair, selected_timeframe):
-        # Calcular el estocástico
-        ohlc_data = self.calculate_stochastic(ohlc_data)
-
-        # Crear una figura
-        fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, sharex=True, figsize=(10, 8))
-=======
         high_max = np.maximum.accumulate(ohlc_data['high'].values)
         low_min = np.minimum.accumulate(ohlc_data['low'].values)
         ohlc_data['%K'] = 100 * ((ohlc_data['close'].values - low_min) / (high_max - low_min))
@@ -83,7 +64,6 @@ class CryptoChart:
 
     def plot_candlestick_chart(self, ohlc_data, selected_pair, selected_timeframe):
         ohlc_data = self.calculate_stochastic(ohlc_data)
->>>>>>> developer
 
         fig, (ax1, ax2, ax3) = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]}, sharex=True, figsize=(10, 8))
 
@@ -130,25 +110,8 @@ class CryptoChart:
         # Eliminar fechas del gráfico del estocástico
         ax3.set_xticks([])
 
-<<<<<<< HEAD
-        # Graficar estocástico
-        ax2.plot(ohlc_data.index, ohlc_data['%K'], label='%K', color='blue')
-        ax2.plot(ohlc_data.index, ohlc_data['%D'], label='%D', color='orange')
-        ax2.axhline(80, color='red', linestyle='--', label='Overbought (80)')
-        ax2.axhline(20, color='green', linestyle='--', label='Oversold (20)')
-
-        # Ajustes de diseño
-=======
->>>>>>> developer
         fig.suptitle(f'Gráfico {selected_pair} - Temporalidad {selected_timeframe}', fontsize=16)
 
-<<<<<<< HEAD
-        # Ajuste de escala en el eje y del segundo subgráfico
-        ax2.set_ylim(0, 100)
-
-        # Mostrar la gráfica en Streamlit
-=======
->>>>>>> developer
         st.pyplot(fig)
 
 def main():
@@ -162,5 +125,5 @@ def main():
     if ohlc_data is not None:
         crypto_chart.plot_candlestick_chart(ohlc_data, selected_pair, selected_timeframe)
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     main()
