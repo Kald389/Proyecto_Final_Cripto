@@ -111,7 +111,12 @@ class ChartPlotter:
             fig.update_yaxes(title_text='Estocástico', row=3, col=1)
 
             # Configuración del eje x
-            fig.update_xaxes(type='category', categoryorder='category ascending', row=3, col=1)
+            num_dates_to_show_small = 20  # Número deseado de fechas a mostrar para 1H y 4H
+            if selected_timeframe in ["1H", "4H"]:
+                step_size_small = max(len(ohlc_data.index) // num_dates_to_show_small, 1)
+                fig.update_xaxes(tickmode='array', tickvals=ohlc_data.index[::step_size_small], row=3, col=1)
+            else:
+                fig.update_xaxes(type='category', categoryorder='category ascending', row=3, col=1)
 
             # Ajuste de diseño
             fig.update_layout(showlegend=False, height=800, title_text=f'Gráfico {selected_pair} - Temporalidad {selected_timeframe}', xaxis_rangeslider_visible=False)
@@ -136,3 +141,6 @@ def main():
         if fig is not None:
             # Mostrar el gráfico en Streamlit
             st.plotly_chart(fig, use_container_width=True)
+
+if __name__ == "__main__":
+    main()
