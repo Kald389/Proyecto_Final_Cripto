@@ -8,8 +8,11 @@ from datetime import datetime, timedelta
 
 class DataFetcher:
     def __init__(self):
-        self.api_krakenex = krakenex.API()
-        self.api = KrakenAPI(self.api_krakenex)
+        try:
+            self.api_krakenex = krakenex.API()
+            self.api = KrakenAPI(self.api_krakenex)
+        except Exception as e:
+            st.error(f"Error al inicializar DataFetcher: {e}")
 
     def get_lookback_days(self, selected_timeframe):
         if selected_timeframe == "1D":
@@ -121,20 +124,23 @@ class ChartPlotter:
             return None
 
 def main():
-    data_fetcher = DataFetcher()
-    selected_pairs = ["BTCUSDT", "ETHUSDT", "ADAUSDT", "DOTUSDT", "ATOMUSDT", "DOGEUSDT", "ROSEUSDT", "SOLUSDT", "MATICUSDT", "HBARUSDT"]
-    selected_pair = st.selectbox('Selecciona un par de criptomonedas:', selected_pairs)
-    selected_timeframes = ["1W", "1D", "4H", "1H"]
-    selected_timeframe = st.selectbox('Selecciona la temporalidad:', selected_timeframes)
-    ohlc_data = data_fetcher.get_ohlc_data(selected_pair, selected_timeframe)
+    try:
+        data_fetcher = DataFetcher()
+        selected_pairs = ["BTCUSDT", "ETHUSDT", "ADAUSDT", "DOTUSDT", "ATOMUSDT", "DOGEUSDT", "ROSEUSDT", "SOLUSDT", "MATICUSDT", "HBARUSDT"]
+        selected_pair = st.selectbox('Selecciona un par de criptomonedas:', selected_pairs)
+        selected_timeframes = ["1W", "1D", "4H", "1H"]
+        selected_timeframe = st.selectbox('Selecciona la temporalidad:', selected_timeframes)
+        ohlc_data = data_fetcher.get_ohlc_data(selected_pair, selected_timeframe)
 
-    if ohlc_data is not None:
-        chart = ChartPlotter()
-        fig = chart.plot_candlestick_chart(ohlc_data, selected_pair, selected_timeframe)
+        if ohlc_data is not None:
+            chart = ChartPlotter()
+            fig = chart.plot_candlestick_chart(ohlc_data, selected_pair, selected_timeframe)
 
-        if fig is not None:
-            # Mostrar el gráfico en Streamlit
-            st.plotly_chart(fig, use_container_width=True)
+            if fig is not None:
+                # Mostrar el gráfico en Streamlit
+                st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error en la función main: {e}")
 
 if __name__ == "__main__":
     main()
